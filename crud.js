@@ -41,7 +41,7 @@ const getOAuth2Client = async () => {
 
 
 // add event
-const addEvent = async (calendarEvent) => {
+const _addEvent = async (calendarEvent) => {
     console.log('Create Event captured:');
     console.log(calendarEvent);
 
@@ -55,6 +55,17 @@ const addEvent = async (calendarEvent) => {
     });
 
     console.log('Event created:', response);
+};
+
+const addEvent = async (calendarEvent) => {
+    // if calendarEvent is list, add all events
+    if (Array.isArray(calendarEvent)) {
+        for (const event of calendarEvent) {
+            await _addEvent(event);
+        }
+    } else {
+        await _addEvent(calendarEvent);
+    }
 };
 
 // get list of events
@@ -84,16 +95,24 @@ const listEvents = async () => {
 };
 
 // delete event
-const deleteEvent = async (eventId) => {
+const _deleteEvent = async (eventId) => {
     const auth = await getOAuth2Client();
 
     const calendar = google.calendar({ version: 'v3', auth });
+    console.log('Deleting event:', eventId);
     await calendar.events.delete({
+        auth,
         calendarId: 'primary',
         eventId,
     });
 
     console.log('Event deleted');
+};
+
+const deleteEvent = async (eventIds) => {
+    for (const eventId of eventIds.eventIds) {
+        await _deleteEvent(eventId);
+    }
 };
 
 module.exports = {

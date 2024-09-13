@@ -59,22 +59,56 @@ const systemPrompt = `
 {
   "message": "では、次のタスクを追加しますね。1. 資料作成 - 締め切り: 2024-09-14 18:00 2. メンバーへの共有 - 締め切り: 2024-09-15 12:00 3. 最終確認 - 締め切り: 2024-09-16 10:00",
   "function": "ADD",
-  "args": {
-    "summary": "資料作成",
-    "description": "ミーティング資料を作成する",
-    "start": {
-      "dateTime": "2024-09-14T09:00:00",
-      "timeZone": "Asia/Tokyo"
-    },
-    "end": {
-      "dateTime": "2024-09-14T18:00:00",
-      "timeZone": "Asia/Tokyo"
-    },
-    "colorId": 3,
-    "reminders": {
-      "useDefault": true
-    }
-  }
+  "args": [
+      {
+        "summary": "資料作成",
+        "description": "ミーティング資料を作成する",
+        "start": {
+          "dateTime": "2024-09-14T09:00:00",
+          "timeZone": "Asia/Tokyo"
+        },
+        "end": {
+          "dateTime": "2024-09-14T18:00:00",
+          "timeZone": "Asia/Tokyo"
+        },
+        "colorId": 3,
+        "reminders": {
+          "useDefault": true
+        }
+      },
+      {
+        "summary": "メンバーへの共有",
+        "description": "ミーティング資料を作成する",
+        "start": {
+          "dateTime": "2024-09-15T11:00:00",
+          "timeZone": "Asia/Tokyo"
+        },
+        "end": {
+          "dateTime": "2024-09-15T12:00:00",
+          "timeZone": "Asia/Tokyo"
+        },
+        "colorId": 3,
+        "reminders": {
+          "useDefault": true
+        }
+      },
+      {
+        "summary": "最終確認",
+        "description": "ミーティング資料を作成する",
+        "start": {
+          "dateTime": "2024-09-16T09:00:00",
+          "timeZone": "Asia/Tokyo"
+        },
+        "end": {
+          "dateTime": "2024-09-16T10:00:00",
+          "timeZone": "Asia/Tokyo"
+        },
+        "colorId": 3,
+        "reminders": {
+          "useDefault": true
+        }
+      },
+  ]
 }
 
 3. **タスクのリマインダー設定確認**:
@@ -108,25 +142,45 @@ const systemPrompt = `
 {
   "message": "では、企画立案タスクを追加します。締め切りは2024-09-20としますね。",
   "function": "ADD",
-  "args": {
-    "summary": "企画立案",
-    "description": "プロジェクトの企画を立てる",
-    "start": {
-      "dateTime": "2024-09-15T09:00:00",
-      "timeZone": "Asia/Tokyo"
-    },
-    "end": {
-      "dateTime": "2024-09-20T18:00:00",
-      "timeZone": "Asia/Tokyo"
-    },
-    "colorId": 4,
-    "reminders": {
-      "useDefault": true
+  "args": [
+    {
+      "summary": "企画立案",
+      "description": "プロジェクトの企画を立てる",
+      "start": {
+        "dateTime": "2024-09-15T09:00:00",
+        "timeZone": "Asia/Tokyo"
+      },
+      "end": {
+        "dateTime": "2024-09-20T18:00:00",
+        "timeZone": "Asia/Tokyo"
+      },
+      "colorId": 4,
+      "reminders": {
+        "useDefault": true
+      }
     }
-  }
+  ]
 }
-`
+### タスク削除リクエスト
+#### ユーザー:「明日のミーティングを削除したい」
+1. **最初の応答**:
+    - ユーザーのリクエストに対して、削除の確認を行います。
+  {
+    "message": "明日のミーティングを削除しますね。よろしいですか？",
+    "function": "NONE",
+    "args": {}
+  }
 
+2. **ユーザーが承認した場合、イベントを削除**:
+    - ユーザーが承認した場合、イベントを削除します。
+  {
+    "message": "明日のミーティングを削除しました。",
+    "function": "DELETE",
+    "args": {
+      "eventIds": ["イベントID"]
+    }
+`
+// 引数の渡し方が悪い
 const functionCaller = async (replyObj) => {
   var events = null;
   switch (replyObj.function) {
@@ -148,14 +202,27 @@ const functionCaller = async (replyObj) => {
 const createMessage = (replyObj, events) => {
   var message = replyObj.message;
   if (events) {
-    message += '\n\n以下のイベントが見つかりました:';
-    events.forEach((event) => {
-      message += `\n- ${event.summary} (${event.start.dateTime})`;
-    });
+    if (events.length === 0) {
+      message += '\n\nイベントは見つかりませんでした。';
+    } else {
+      message += '\n\n以下のイベントが見つかりました:';
+      events.forEach((event) => {
+        message += `\n- ${event.summary} (${event.start.dateTime})`;
+      });
+    }
   }
   return message;
 }
 
+const addConversation = (userId, conversationId, message) => {
+  const conversationKey = getConversationKey(userId, conversationId);
+  let messages = conversations.get(conversationKey);
+  if (!messages) {
+    messages = [{ role: "system", content: systemPrompt }];
+    conversations.set(conversationKey, messages);
+  }
+  messages.push({ role: "system", content: message });
+};
 
 const getReply = async (userId, conversationId, req) => {
   req = req.replace(botName, '');
@@ -217,7 +284,15 @@ class EchoBot extends ActivityHandler {
       const replyText = await getReply(userId, conversationId, context.activity.text); // getReplyに会話IDを渡す
       console.log("replied");
       const events = await functionCaller(replyText);
-      console.log("got events")
+      if (events) {
+        // make the pair of event summary and its event id
+        const eventScript = events.map((event) => {
+          return `(${event.summary}, ${event.id})`;
+        });
+        addConversation(userId, conversationId, `現在のイベント情報(summary, eventId): ${eventScript.join(", ")}`);
+      }
+      console.log("got events");
+      console.log(events);
       const message = createMessage(replyText, events);
       console.log("created message");
       await context.sendActivity(MessageFactory.text(message, message));
@@ -227,7 +302,7 @@ class EchoBot extends ActivityHandler {
 
     this.onMembersAdded(async (context, next) => {
       const membersAdded = context.activity.membersAdded;
-      const welcomeText = 'Calendar Bot へようこそ! 以下のコマンドを使ってください: \n- `add` イベントを追加 \n- `list` イベントの一覧を表示 \n- `delete` イベントを削除';
+      const welcomeText = 'マイクロカレンダーへようこそ! 以下のコマンドを使ってください: \n- `add` イベントを追加 \n- `list` イベントの一覧を表示 \n- `delete` イベントを削除';
       for (let cnt = 0; cnt < membersAdded.length; ++cnt) {
         if (membersAdded[cnt].id !== context.activity.recipient.id) {
           await context.sendActivity(MessageFactory.text(welcomeText, welcomeText));
