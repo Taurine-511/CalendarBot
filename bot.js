@@ -59,22 +59,56 @@ const systemPrompt = `
 {
   "message": "では、次のタスクを追加しますね。1. 資料作成 - 締め切り: 2024-09-14 18:00 2. メンバーへの共有 - 締め切り: 2024-09-15 12:00 3. 最終確認 - 締め切り: 2024-09-16 10:00",
   "function": "ADD",
-  "args": {
-    "summary": "資料作成",
-    "description": "ミーティング資料を作成する",
-    "start": {
-      "dateTime": "2024-09-14T09:00:00",
-      "timeZone": "Asia/Tokyo"
-    },
-    "end": {
-      "dateTime": "2024-09-14T18:00:00",
-      "timeZone": "Asia/Tokyo"
-    },
-    "colorId": 3,
-    "reminders": {
-      "useDefault": true
-    }
-  }
+  "args": [
+      {
+        "summary": "資料作成",
+        "description": "ミーティング資料を作成する",
+        "start": {
+          "dateTime": "2024-09-14T09:00:00",
+          "timeZone": "Asia/Tokyo"
+        },
+        "end": {
+          "dateTime": "2024-09-14T18:00:00",
+          "timeZone": "Asia/Tokyo"
+        },
+        "colorId": 3,
+        "reminders": {
+          "useDefault": true
+        }
+      },
+      {
+        "summary": "メンバーへの共有",
+        "description": "ミーティング資料を作成する",
+        "start": {
+          "dateTime": "2024-09-15T11:00:00",
+          "timeZone": "Asia/Tokyo"
+        },
+        "end": {
+          "dateTime": "2024-09-15T12:00:00",
+          "timeZone": "Asia/Tokyo"
+        },
+        "colorId": 3,
+        "reminders": {
+          "useDefault": true
+        }
+      },
+      {
+        "summary": "最終確認",
+        "description": "ミーティング資料を作成する",
+        "start": {
+          "dateTime": "2024-09-16T09:00:00",
+          "timeZone": "Asia/Tokyo"
+        },
+        "end": {
+          "dateTime": "2024-09-16T10:00:00",
+          "timeZone": "Asia/Tokyo"
+        },
+        "colorId": 3,
+        "reminders": {
+          "useDefault": true
+        }
+      },
+  ]
 }
 
 3. **タスクのリマインダー設定確認**:
@@ -126,7 +160,7 @@ const systemPrompt = `
   }
 }
 `
-
+// 引数の渡し方が悪い
 const functionCaller = async (replyObj) => {
   var events = null;
   switch (replyObj.function) {
@@ -156,6 +190,15 @@ const createMessage = (replyObj, events) => {
   return message;
 }
 
+const addConversation = (userId, conversationId, message) => {
+  const conversationKey = getConversationKey(userId, conversationId);
+  let messages = conversations.get(conversationKey);
+  if (!messages) {
+    messages = [{ role: "system", content: systemPrompt }];
+    conversations.set(conversationKey, messages);
+  }
+  messages.push({ role: "system", content: message });
+};
 
 const getReply = async (userId, conversationId, req) => {
   req = req.replace(botName, '');
@@ -217,7 +260,15 @@ class EchoBot extends ActivityHandler {
       const replyText = await getReply(userId, conversationId, context.activity.text); // getReplyに会話IDを渡す
       console.log("replied");
       const events = await functionCaller(replyText);
-      console.log("got events")
+      if (events) {
+        // make the pair of event summary and its event id
+        const eventScript = events.map((event) => {
+          return `(${event.summary}, ${event.id})`;
+        });
+        addConversation(userId, conversationId, `現在のイベント情報(summary, eventId): ${eventScript.join(", ")}`);
+      }
+      console.log("got events");
+      console.log(events);
       const message = createMessage(replyText, events);
       console.log("created message");
       await context.sendActivity(MessageFactory.text(message, message));
