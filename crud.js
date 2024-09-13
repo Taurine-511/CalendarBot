@@ -1,9 +1,7 @@
 const fs = require('fs').promises;
 const { google } = require('googleapis');
-const { moment } = require('moment');
 
 // Auth
-
 const getOAuth2Client = async () => {
     const credentialsText = await fs.readFile('credentials.json', 'utf-8');
     const credentials = JSON.parse(credentialsText);
@@ -19,8 +17,31 @@ const getOAuth2Client = async () => {
     return oAuth2Client;
 };
 
+// Event Example
+// const event = {
+//     'summary': 'サンプル',
+//     'description': 'カレンダー説明',
+//     'start': {
+//         'dateTime': moment().add(1, 'h').format(),
+//         'timeZone': 'Asia/Tokyo',
+//     },
+//     'end': {
+//         'dateTime': moment().add(2, 'h').format(),
+//         'timeZone': 'Asia/Tokyo',
+//     },
+//     'colorId': 2, // @see https://lukeboyle.com/blog-posts/2016/04/google-calendar-api---color-id
+//     'reminders': {
+//         'useDefault': false,
+//         'overrides': [
+//             { 'method': 'email', 'minutes': 120 },
+//             { 'method': 'popup', 'minutes': 30 },
+//         ],
+//     },
+// };
+
+
 // add event
-export const addEvent = async (calendarEvent) => {
+const addEvent = async (calendarEvent) => {
     console.log('Create Event captured:');
     console.log(calendarEvent);
 
@@ -37,7 +58,7 @@ export const addEvent = async (calendarEvent) => {
 };
 
 // get list of events
-export const listEvents = async () => {
+const listEvents = async () => {
     const auth = await getOAuth2Client();
 
     const calendar = google.calendar({ version: 'v3', auth });
@@ -59,10 +80,11 @@ export const listEvents = async () => {
     } else {
         console.log('No upcoming events found.');
     }
+    return events;
 };
 
 // delete event
-export const deleteEvent = async (eventId) => {
+const deleteEvent = async (eventId) => {
     const auth = await getOAuth2Client();
 
     const calendar = google.calendar({ version: 'v3', auth });
@@ -74,4 +96,8 @@ export const deleteEvent = async (eventId) => {
     console.log('Event deleted');
 };
 
-
+module.exports = {
+    addEvent,
+    listEvents,
+    deleteEvent,
+  };
