@@ -302,7 +302,7 @@ class EchoBot extends ActivityHandler {
 
     this.onMembersAdded(async (context, next) => {
       const membersAdded = context.activity.membersAdded;
-      const welcomeText = 'Calendar Bot へようこそ! 以下のコマンドを使ってください: \n- `add` イベントを追加 \n- `list` イベントの一覧を表示 \n- `delete` イベントを削除';
+      const welcomeText = 'マイクロカレンダーへようこそ! 以下のコマンドを使ってください: \n- `add` イベントを追加 \n- `list` イベントの一覧を表示 \n- `delete` イベントを削除';
       for (let cnt = 0; cnt < membersAdded.length; ++cnt) {
         if (membersAdded[cnt].id !== context.activity.recipient.id) {
           await context.sendActivity(MessageFactory.text(welcomeText, welcomeText));
