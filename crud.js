@@ -110,12 +110,8 @@ const _deleteEvent = async (eventId) => {
 };
 
 const deleteEvent = async (eventIds) => {
-    if (Array.isArray(eventIds)) {
-        for (const eventId of eventIds) {
-            await _deleteEvent(eventId.eventId);
-        }
-    } else {
-        await _deleteEvent(eventIds.eventId);
+    for (const eventId of eventIds.eventIds) {
+        await _deleteEvent(eventId);
     }
 };
 

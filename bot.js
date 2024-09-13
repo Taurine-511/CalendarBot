@@ -142,23 +142,43 @@ const systemPrompt = `
 {
   "message": "では、企画立案タスクを追加します。締め切りは2024-09-20としますね。",
   "function": "ADD",
-  "args": {
-    "summary": "企画立案",
-    "description": "プロジェクトの企画を立てる",
-    "start": {
-      "dateTime": "2024-09-15T09:00:00",
-      "timeZone": "Asia/Tokyo"
-    },
-    "end": {
-      "dateTime": "2024-09-20T18:00:00",
-      "timeZone": "Asia/Tokyo"
-    },
-    "colorId": 4,
-    "reminders": {
-      "useDefault": true
+  "args": [
+    {
+      "summary": "企画立案",
+      "description": "プロジェクトの企画を立てる",
+      "start": {
+        "dateTime": "2024-09-15T09:00:00",
+        "timeZone": "Asia/Tokyo"
+      },
+      "end": {
+        "dateTime": "2024-09-20T18:00:00",
+        "timeZone": "Asia/Tokyo"
+      },
+      "colorId": 4,
+      "reminders": {
+        "useDefault": true
+      }
     }
-  }
+  ]
 }
+### タスク削除リクエスト
+#### ユーザー:「明日のミーティングを削除したい」
+1. **最初の応答**:
+    - ユーザーのリクエストに対して、削除の確認を行います。
+  {
+    "message": "明日のミーティングを削除しますね。よろしいですか？",
+    "function": "NONE",
+    "args": {}
+  }
+
+2. **ユーザーが承認した場合、イベントを削除**:
+    - ユーザーが承認した場合、イベントを削除します。
+  {
+    "message": "明日のミーティングを削除しました。",
+    "function": "DELETE",
+    "args": {
+      "eventIds": ["イベントID"]
+    }
 `
 // 引数の渡し方が悪い
 const functionCaller = async (replyObj) => {
@@ -182,10 +202,14 @@ const functionCaller = async (replyObj) => {
 const createMessage = (replyObj, events) => {
   var message = replyObj.message;
   if (events) {
-    message += '\n\n以下のイベントが見つかりました:';
-    events.forEach((event) => {
-      message += `\n- ${event.summary} (${event.start.dateTime})`;
-    });
+    if (events.length === 0) {
+      message += '\n\nイベントは見つかりませんでした。';
+    } else {
+      message += '\n\n以下のイベントが見つかりました:';
+      events.forEach((event) => {
+        message += `\n- ${event.summary} (${event.start.dateTime})`;
+      });
+    }
   }
   return message;
 }
