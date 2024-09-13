@@ -1,4 +1,4 @@
-# aoai-chat-bot
+# calendar-chat-bot
 
 Demonstrate the core capabilities of the Microsoft Bot Framework
 
